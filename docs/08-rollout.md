@@ -38,9 +38,9 @@ The script:
 
 Expected output: ~50 green 200s, all reading version `1.0.0`, then ~50 green 200s reading `2.0.0`. Never a red.
 
-## Auto-scaling (next step, not in 9.35 scope)
+## Auto-scaling (next step)
 - HPA on FastAPI by `metric: http_requests_per_second` (custom metric served by `/metrics`).
-- Currently `replicas: 2` is fixed — sufficient to demonstrate zero-downtime; HPA would add the autoscaling story for the final-Perfection bump (40 points).
+- Currently `replicas: 2` is fixed — sufficient to demonstrate zero-downtime; HPA is the natural follow-up.
 
 ## Rollback
 - Either `git revert` the bump commit (preferred — preserves audit trail), OR

@@ -1,6 +1,6 @@
 # DevOps2 Endterm — Single-Node Kubernetes Platform
 
-Production-style single-node Kubernetes cluster on Ubuntu 25.10 (ARM64) with full GitOps, monitoring, and security best practices. Built for the DevOps2 endterm project (target grade ≥ 9.35).
+Production-style single-node Kubernetes cluster on Ubuntu 25.10 (ARM64) with full GitOps, monitoring, and security best practices.
 
 ## Stack
 

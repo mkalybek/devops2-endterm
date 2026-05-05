@@ -20,7 +20,7 @@ A proof-of-concept controller from `lab12/controller.sh` (a shell loop that dete
 3. Watch `Deployment` objects, mutate to inject defaults if missing, emit a status event.
 4. Package as a chart, deploy via ArgoCD as another sync-wave.
 
-This was deliberately deferred — the 9.35 target is hit without it. It's listed here as the upgrade path to perfection-final (40 points).
+This is the natural upgrade path when we want to manage policies as cluster API objects rather than ad-hoc shell loops.
 
 ## Live verification
 ```bash

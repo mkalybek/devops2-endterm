@@ -22,6 +22,9 @@ __pycache__/
 charts/*/charts/
 charts/*/Chart.lock
 
+# bak files (sed -i.bak leftovers)
+*.bak
+
 # os
 .DS_Store
 Thumbs.db
