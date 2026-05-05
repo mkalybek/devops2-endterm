@@ -69,16 +69,19 @@ spec:
       app: fastapi
   policyTypes: [Egress]
   egress:
-    # DNS to kube-system (CoreDNS)
-    - to:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: kube-system
-      ports:
+    # DNS — kube-system (CoreDNS Service VIP) AND nodelocaldns (link-local IP)
+    - ports:
         - protocol: UDP
           port: 53
         - protocol: TCP
           port: 53
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+        - ipBlock:
+            # nodelocaldns DaemonSet listens on 169.254.25.10:53 via host network
+            cidr: 169.254.0.0/16
     # Postgres in same ns
     - to:
         - podSelector:
@@ -102,15 +105,17 @@ spec:
       app: postgres
   policyTypes: [Egress]
   egress:
-    - to:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: kube-system
-      ports:
+    - ports:
         - protocol: UDP
           port: 53
         - protocol: TCP
           port: 53
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+        - ipBlock:
+            cidr: 169.254.0.0/16
 ---
 # 6) allow Prometheus (in monitoring ns) to scrape /metrics on fastapi
 apiVersion: networking.k8s.io/v1

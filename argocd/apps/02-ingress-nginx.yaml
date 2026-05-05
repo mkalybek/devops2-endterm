@@ -44,9 +44,6 @@ spec:
             limits:
               cpu: 500m
               memory: 256Mi
-          # Default labels & namespace metadata so NetworkPolicies can target it
-          podLabels:
-            app.kubernetes.io/component: ingress-controller
         defaultBackend:
           enabled: false
   destination:
