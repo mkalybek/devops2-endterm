@@ -9,7 +9,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 VM_HOST="${VM_HOST:-192.168.10.12}"
 VM_USER="${VM_USER:-root}"
-ARGOCD_VERSION="${ARGOCD_VERSION:-v2.13.2}"
+ARGOCD_VERSION="${ARGOCD_VERSION:-v3.0.0}"
 
 bold() { printf "\n\033[1m== %s ==\033[0m\n" "$*"; }
 

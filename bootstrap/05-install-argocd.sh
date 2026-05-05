@@ -6,7 +6,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 export KUBECONFIG="${KUBECONFIG:-${REPO_ROOT}/kubeconfig}"
 
-ARGOCD_VERSION="${ARGOCD_VERSION:-v2.13.2}"
+ARGOCD_VERSION="${ARGOCD_VERSION:-v3.0.0}"
 
 echo "==> Creating argocd namespace"
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
