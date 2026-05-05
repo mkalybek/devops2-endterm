@@ -1,0 +1,101 @@
+---
+# Idempotent VM bootstrap for Kubespray on Ubuntu 25.10 (aarch64).
+# Prepares OS-level prerequisites: apt deps, swap off, kernel modules, sysctl.
+# Kubespray itself runs separately in bootstrap/02-run-kubespray.sh.
+
+- name: Prepare VM for Kubespray
+  hosts: vm
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Show host facts
+      ansible.builtin.debug:
+        msg: "{{ ansible_distribution }} {{ ansible_distribution_version }} ({{ ansible_architecture }}) — {{ ansible_processor_vcpus }} vCPU, {{ (ansible_memtotal_mb/1024)|round(1) }} Gi RAM"
+
+    - name: APT update + upgrade
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: safe
+        cache_valid_time: 3600
+
+    - name: Install apt dependencies
+      ansible.builtin.apt:
+        name: "{{ apt_dependencies }}"
+        state: present
+
+    - name: Disable swap (live)
+      ansible.builtin.command: swapoff -a
+      when: ansible_swaptotal_mb | int > 0
+      changed_when: ansible_swaptotal_mb | int > 0
+
+    - name: Persist swap-off in /etc/fstab
+      ansible.builtin.replace:
+        path: /etc/fstab
+        regexp: '^(\s*[^#].*\s+swap\s+.*)$'
+        replace: '# \1'
+
+    - name: Load required kernel modules now
+      community.general.modprobe:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ required_kernel_modules }}"
+
+    - name: Persist kernel modules across reboot
+      ansible.builtin.copy:
+        dest: /etc/modules-load.d/k8s.conf
+        content: "{{ required_kernel_modules | join('\n') }}\n"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Apply sysctl values
+      ansible.posix.sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        sysctl_file: /etc/sysctl.d/99-kubernetes.conf
+        sysctl_set: true
+        state: present
+        reload: true
+      loop: "{{ required_sysctls | dict2items }}"
+
+    - name: Ensure SSH key auth for kubespray (use the same root we logged in with)
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PermitRootLogin'
+        line: 'PermitRootLogin prohibit-password'
+        state: present
+      notify: restart sshd
+
+    - name: Install nerdctl for local image builds (single-node, no registry)
+      block:
+        - name: Detect nerdctl
+          ansible.builtin.command: which nerdctl
+          register: nerdctl_check
+          changed_when: false
+          failed_when: false
+
+        - name: Download nerdctl tarball
+          ansible.builtin.get_url:
+            url: "https://github.com/containerd/nerdctl/releases/download/v2.0.3/nerdctl-2.0.3-linux-{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}.tar.gz"
+            dest: /tmp/nerdctl.tar.gz
+            mode: "0644"
+          when: nerdctl_check.rc != 0
+
+        - name: Extract nerdctl
+          ansible.builtin.unarchive:
+            src: /tmp/nerdctl.tar.gz
+            dest: /usr/local/bin
+            remote_src: true
+          when: nerdctl_check.rc != 0
+
+        - name: Install buildkit (required for nerdctl build)
+          ansible.builtin.apt:
+            name: buildkit
+            state: present
+
+  handlers:
+    - name: restart sshd
+      ansible.builtin.systemd_service:
+        name: ssh
+        state: restarted

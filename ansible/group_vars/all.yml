@@ -1,0 +1,32 @@
+---
+# Cluster networking pre-reqs (loaded by prepare-vm.yml)
+required_kernel_modules:
+  - br_netfilter
+  - overlay
+  - ip_vs
+  - ip_vs_rr
+  - ip_vs_wrr
+  - ip_vs_sh
+  - nf_conntrack
+
+required_sysctls:
+  net.bridge.bridge-nf-call-iptables: 1
+  net.bridge.bridge-nf-call-ip6tables: 1
+  net.ipv4.ip_forward: 1
+  net.ipv4.conf.all.forwarding: 1
+
+apt_dependencies:
+  - python3
+  - python3-pip
+  - python3-venv
+  - curl
+  - git
+  - jq
+  - rsync
+  - apt-transport-https
+  - ca-certificates
+  - gnupg
+  - lsb-release
+  - conntrack
+  - socat
+  - iptables

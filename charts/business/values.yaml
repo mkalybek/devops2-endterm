@@ -1,0 +1,74 @@
+# Chart-wide values for the business app (FastAPI + Postgres).
+# Bumping fastapi.image.tag here is what triggers the zero-downtime rolling
+# update demo (Q8 on defense): commit, push, ArgoCD reconciles.
+
+namespace: business
+
+fastapi:
+  image:
+    repository: business-fastapi
+    tag: "1.0.0"
+    pullPolicy: Never  # built directly into containerd via nerdctl on the VM
+  replicas: 2
+  port: 8000
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+  pdb:
+    minAvailable: 1
+
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+
+  ingress:
+    enabled: true
+    className: nginx
+    host: business.local
+
+postgres:
+  image:
+    repository: postgres
+    tag: "16-alpine"
+  port: 5432
+  database: business
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+  storage:
+    storageClassName: local-path
+    size: 1Gi
+
+resourceQuota:
+  enabled: true
+  hard:
+    requests.cpu: "2"
+    requests.memory: 2Gi
+    limits.cpu: "4"
+    limits.memory: 4Gi
+    pods: "20"
+    persistentvolumeclaims: "5"
+
+limitRange:
+  enabled: true
+  defaults:
+    cpu: 250m
+    memory: 256Mi
+  defaultRequests:
+    cpu: 100m
+    memory: 128Mi
+
+networkPolicies:
+  enabled: true

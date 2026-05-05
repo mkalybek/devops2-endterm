@@ -1,0 +1,32 @@
+# local kubeconfig + secrets
+.kubeconfig
+kubeconfig
+admin.conf
+*.pem
+*.key
+.secrets/
+sealed-secrets-key.yaml
+secret-*.yaml
+!sealed-secret-*.yaml
+
+# kubespray (clone target, never commit)
+kubespray/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.python-version
+
+# helm
+charts/*/charts/
+charts/*/Chart.lock
+
+# os
+.DS_Store
+Thumbs.db
+
+# editor
+.idea/
+.vscode/
+*.swp

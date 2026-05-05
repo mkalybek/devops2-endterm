@@ -1,0 +1,16 @@
+{{- if .Values.limitRange.enabled }}
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: business-defaults
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "business.labels" . | nindent 4 }}
+spec:
+  limits:
+    - type: Container
+      default:
+        {{- toYaml .Values.limitRange.defaults | nindent 8 }}
+      defaultRequest:
+        {{- toYaml .Values.limitRange.defaultRequests | nindent 8 }}
+{{- end }}

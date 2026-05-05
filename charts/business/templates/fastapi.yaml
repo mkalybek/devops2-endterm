@@ -1,0 +1,106 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: fastapi
+    {{- include "business.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: {{ .Values.fastapi.port }}
+      name: http
+  selector:
+    app: fastapi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: fastapi
+    {{- include "business.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.fastapi.replicas }}
+  selector:
+    matchLabels:
+      app: fastapi
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: fastapi
+        {{- include "business.labels" . | nindent 8 }}
+      annotations:
+        # Force re-roll when configmap changes
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: fastapi
+          image: "{{ .Values.fastapi.image.repository }}:{{ .Values.fastapi.image.tag }}"
+          imagePullPolicy: {{ .Values.fastapi.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.fastapi.port }}
+              name: http
+          env:
+            - name: DATABASE_HOST
+              valueFrom: { configMapKeyRef: { name: app-config, key: DATABASE_HOST } }
+            - name: DATABASE_PORT
+              valueFrom: { configMapKeyRef: { name: app-config, key: DATABASE_PORT } }
+            - name: DATABASE_NAME
+              valueFrom: { configMapKeyRef: { name: app-config, key: DATABASE_NAME } }
+            - name: APP_VERSION
+              valueFrom: { configMapKeyRef: { name: app-config, key: APP_VERSION } }
+            - name: DATABASE_USER
+              valueFrom: { secretKeyRef: { name: db-secret, key: POSTGRES_USER } }
+            - name: DATABASE_PASSWORD
+              valueFrom: { secretKeyRef: { name: db-secret, key: POSTGRES_PASSWORD } }
+          resources:
+            {{- toYaml .Values.fastapi.resources | nindent 12 }}
+          securityContext:
+            runAsUser: 1000
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            seccompProfile:
+              type: RuntimeDefault
+          livenessProbe:
+            httpGet: { path: /health, port: {{ .Values.fastapi.port }} }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /ready, port: {{ .Values.fastapi.port }} }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: fastapi
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "business.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.fastapi.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      app: fastapi

@@ -1,0 +1,8 @@
+apiVersion: v2
+name: business
+description: FastAPI + PostgreSQL business app for the devops2 endterm
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+maintainers:
+  - name: mkalybek

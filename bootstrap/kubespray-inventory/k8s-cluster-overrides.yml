@@ -1,0 +1,44 @@
+---
+# Overrides our single-node cluster on top of kubespray's sample defaults.
+# Anything not set here keeps the upstream default — we surface only what matters.
+
+# Cluster identity
+cluster_name: devops2-endterm
+kube_version: v1.31.4
+
+# Networking
+kube_network_plugin: calico
+kube_network_plugin_multus: false
+calico_mtu: 1450
+kube_pods_subnet: 10.233.64.0/18
+kube_service_addresses: 10.233.0.0/18
+kube_proxy_mode: iptables
+
+# Container runtime
+container_manager: containerd
+
+# Single-node tweaks
+etcd_deployment_type: host
+loadbalancer_apiserver_localhost: true
+kube_apiserver_global_oidc_issuer_url: ""
+
+# Required for NetworkPolicy
+kube_network_node_prefix: 24
+
+# Make sure DNS works inside the cluster
+dns_mode: coredns
+enable_nodelocaldns: true
+
+# Local kubeconfig copy on the control-plane host (we'll scp it after)
+kubeconfig_localhost: true
+kubectl_localhost: true
+
+# We deploy ingress-nginx via ArgoCD, not via kubespray
+ingress_nginx_enabled: false
+metallb_enabled: false
+
+# Audit (helps Q5 on defense)
+kubernetes_audit: true
+
+# Pod security: keep "baseline" wide open in kube-system, tighten elsewhere via own policies
+pod_security_default_enforce: privileged

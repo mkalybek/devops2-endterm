@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "business.labels" . | nindent 4 }}
+data:
+  DATABASE_HOST: postgres
+  DATABASE_PORT: "{{ .Values.postgres.port }}"
+  DATABASE_NAME: {{ .Values.postgres.database | quote }}
+  APP_VERSION: {{ .Values.fastapi.image.tag | quote }}
