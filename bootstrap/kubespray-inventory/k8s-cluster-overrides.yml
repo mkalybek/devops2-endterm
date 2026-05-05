@@ -4,7 +4,9 @@
 
 # Cluster identity
 cluster_name: devops2-endterm
-kube_version: v1.31.4
+# kube_version intentionally not pinned — let kubespray v2.27.0 use its default
+# (currently v1.32.x). Pinning to v1.31.x triggered a Jinja2 type-error in
+# kubespray's validate_inventory role.
 
 # Networking
 kube_network_plugin: calico
