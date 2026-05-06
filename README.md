@@ -21,7 +21,7 @@ Single-node Kubernetes cluster on Ubuntu 25.10 (ARM64). GitOps with ArgoCD, full
 
 ```
                       ┌─────────────────────────────────────┐
-                      │  VM: 192.168.10.12 (Ubuntu 25.10)   │
+                      │  VM: 172.20.10.4 (Ubuntu 25.10)   │
                       │  4 CPU · 7.2 Gi RAM · 32 Gi disk    │
                       │                                     │
    ssh -L 8080:30080  │   ┌─────────────────────────┐       │

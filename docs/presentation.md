@@ -15,7 +15,7 @@ Single-node Kubernetes platform · `mkalybek` · 2026-05-06
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  VM  192.168.10.12  ·  Ubuntu 25.10  ·  arm64  ·  4 CPU     │
+│  VM  172.20.10.4  ·  Ubuntu 25.10  ·  arm64  ·  4 CPU     │
 │                                                             │
 │  ┌───────────────────────────────────────────────────────┐  │
 │  │  Kubernetes 1.32  ·  kubespray  ·  containerd  ·       │  │
@@ -145,7 +145,7 @@ kubectl -n argocd port-forward svc/argocd-server 8081:443
 kubectl -n monitoring port-forward svc/monitoring-grafana 3000:80
 
 # Business app (через VM)
-ssh root@192.168.10.12 'curl -s -H "Host: business.local" http://127.0.0.1:30080/items'
+ssh root@172.20.10.4 'curl -s -H "Host: business.local" http://127.0.0.1:30080/items'
 ```
 
 ---

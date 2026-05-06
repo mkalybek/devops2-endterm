@@ -9,7 +9,7 @@ set -euo pipefail
 
 TAG="${1:?usage: $0 <tag>   e.g. 1.0.0}"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VM_HOST="${VM_HOST:-192.168.10.12}"
+VM_HOST="${VM_HOST:-172.20.10.4}"
 VM_USER="${VM_USER:-root}"
 
 IMAGE="business-fastapi:${TAG}"

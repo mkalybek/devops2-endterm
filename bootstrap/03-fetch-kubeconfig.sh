@@ -4,7 +4,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VM_HOST="${VM_HOST:-192.168.10.12}"
+VM_HOST="${VM_HOST:-172.20.10.4}"
 VM_USER="${VM_USER:-root}"
 KUBECONFIG_PATH="${REPO_ROOT}/kubeconfig"
 

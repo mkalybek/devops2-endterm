@@ -18,7 +18,7 @@
 ## Inventory shape
 ```ini
 [kube_control_plane]
-node1 ansible_host=192.168.10.12 ansible_user=root
+node1 ansible_host=172.20.10.4 ansible_user=root
 
 [etcd]
 node1

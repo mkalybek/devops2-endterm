@@ -36,5 +36,5 @@ kubectl get sc                    # local-path is default
 kubectl get pv                    # bound to PVCs
 kubectl get pvc -A                # all Bound
 kubectl get sc local-path -o yaml | grep reclaimPolicy
-ssh root@192.168.10.12 ls /opt/local-path-provisioner   # actual data on disk
+ssh root@172.20.10.4 ls /opt/local-path-provisioner   # actual data on disk
 ```
