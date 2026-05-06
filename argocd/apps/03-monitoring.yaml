@@ -72,6 +72,11 @@ spec:
             enabled: true
             storageClassName: local-path
             size: 2Gi
+          ingress:
+            enabled: true
+            ingressClassName: nginx
+            hosts: [grafana.local]
+            path: /
           resources:
             requests:
               cpu: 100m
