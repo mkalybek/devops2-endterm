@@ -10,7 +10,7 @@ fastapi:
     repository: business-fastapi
     tag: "2.0.0"
     pullPolicy: Never  # built directly into containerd via nerdctl on the VM
-  replicas: 2
+  replicas: 1
   port: 8000
 
   resources:
