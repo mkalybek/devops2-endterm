@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Health snapshot for the cluster. Run before defense to confirm all green.
+# Health snapshot for the cluster.
 
 set -uo pipefail
 

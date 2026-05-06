@@ -1,4 +1,4 @@
-# Q10 — Monitoring
+# Monitoring
 
 ## What we collect
 
@@ -27,7 +27,7 @@ Helm chart `grafana/loki-stack` brings:
 - A `ServiceMonitor` in the `business` namespace tells Prometheus "scrape `fastapi:80/metrics` every 15s".
 - A `NetworkPolicy` `allow-fastapi-from-monitoring` permits the scrape across namespaces (without it the default-deny would block it).
 
-## Access for defense
+## Access
 ```bash
 # Grafana
 kubectl -n monitoring port-forward svc/monitoring-grafana 3000:80

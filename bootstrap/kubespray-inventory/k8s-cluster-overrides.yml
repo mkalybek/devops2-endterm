@@ -39,7 +39,7 @@ kubectl_localhost: true
 ingress_nginx_enabled: false
 metallb_enabled: false
 
-# Audit (helps Q5 on defense)
+# API audit logging (helpful for security forensics)
 kubernetes_audit: true
 
 # Pod security: keep "baseline" wide open in kube-system, tighten elsewhere via own policies

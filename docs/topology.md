@@ -1,10 +1,10 @@
-# Q1 — Cluster topology
+# Cluster topology
 
 ## What
 - **1 VM**: `192.168.10.12`, Ubuntu 25.10 (Questing Quokka), aarch64, 4 vCPU, 7.2 Gi RAM, 32 Gi disk.
 - **1 node** acting as both control-plane and worker (single-node "all-in-one"). The control-plane `NoSchedule` taint is removed by `bootstrap/04-untaint-master.sh` so workloads can land on the only node we have.
 - **CRI**: containerd (kubespray default for k8s 1.31).
-- **CNI**: Calico — chosen over Flannel because it implements `NetworkPolicy` (required for Q5/Q6).
+- **CNI**: Calico — chosen over Flannel because it implements `NetworkPolicy`, which we rely on for the security and networking posture (see `security.md`, `networking.md`).
 - **DNS**: CoreDNS (cluster default), with `nodelocaldns` enabled so per-node DNS lookups don't hit kube-system every time.
 - **kube-proxy**: iptables mode.
 

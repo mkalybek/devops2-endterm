@@ -5,10 +5,9 @@ paginate: true
 size: 16:9
 ---
 
-# DevOps2 Endterm
-## Single-node Kubernetes platform
+# devops2-endterm
 
-`mkalybek` · 2026-05-06
+Single-node Kubernetes platform · `mkalybek` · 2026-05-06
 
 ---
 
@@ -70,7 +69,7 @@ Sync-waves enforce ordering · `automated{prune,selfHeal}` · `ServerSideApply`
 
 ---
 
-## Security guardrails (Q5)
+## Security guardrails
 
 | Control | Where |
 |---|---|
@@ -163,17 +162,6 @@ bash scripts/demo-zero-downtime.sh 2.0.0   # rolling update with 0 downtime
 
 ---
 
-## Defense Q-map
+## Docs
 
-| # | Q | File |
-|---|---|---|
-| 1 | Topology | `docs/01-topology.md` |
-| 2 | Deployment process | `docs/02-deployment.md` |
-| 3 | Access / config mgmt | `docs/03-access.md` |
-| 4 | Business architecture | `docs/04-architecture.md` |
-| 5 | Workload security | `docs/05-security.md` |
-| 6 | Networking | `docs/06-networking.md` |
-| 7 | Storage | `docs/07-storage.md` |
-| 8 | Rollout | `docs/08-rollout.md` |
-| 9 | Custom extensions | `docs/09-extensions.md` |
-| 10 | Monitoring | `docs/10-monitoring.md` |
+`docs/` — topology · deployment · access · architecture · security · networking · storage · rollout · extensions · monitoring

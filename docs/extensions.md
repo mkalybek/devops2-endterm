@@ -1,4 +1,4 @@
-# Q9 — Custom extensions / CRDs
+# Custom extensions / CRDs
 
 ## Currently deployed CRDs (from operators)
 The cluster runs multiple CRDs through bundled operators — none of which we authored, but their presence and our use of them does count as "custom extensions to the API surface":

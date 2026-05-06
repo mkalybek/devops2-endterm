@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Prove NetworkPolicies actually deny traffic. Q5/Q6 on defense.
+# Prove NetworkPolicies actually deny traffic.
 #
 # Test plan:
 #   1) Run a debug Pod in the `default` namespace (NOT in `business`).

@@ -1,4 +1,4 @@
-# Q8 — Rollout strategy
+# Rollout strategy
 
 ## Strategy: RollingUpdate with `maxUnavailable: 0`
 

@@ -1,4 +1,4 @@
-# Q2 — Cluster deployment process
+# Deployment process
 
 ## Tooling
 - **Distro**: Kubernetes upstream (not k3s, not k0s) installed via **Kubespray v2.27**.

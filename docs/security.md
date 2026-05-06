@@ -1,4 +1,4 @@
-# Q5 — Workload security
+# Workload security
 
 ## Layered controls
 
@@ -53,5 +53,5 @@ kubectl get resourcequota -A
 kubectl get limitrange -A
 kubectl get poddisruptionbudget -A
 kubectl -n business get sealedsecret
-kubectl get networkpolicy -A    # see Q6
+kubectl get networkpolicy -A    # see networking.md
 ```

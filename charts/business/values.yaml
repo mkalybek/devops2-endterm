@@ -1,6 +1,7 @@
 # Chart-wide values for the business app (FastAPI + Postgres).
-# Bumping fastapi.image.tag here is what triggers the zero-downtime rolling
-# update demo (Q8 on defense): commit, push, ArgoCD reconciles.
+# Bumping fastapi.image.tag here triggers a zero-downtime rolling update:
+# commit, push, ArgoCD reconciles, RollingUpdate maxUnavailable=0 + readiness
+# probe ensure 100% requests get a 200 throughout the rollout.
 
 namespace: business
 

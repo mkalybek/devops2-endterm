@@ -1,4 +1,4 @@
-# Q7 — Storage
+# Storage
 
 ## Stack
 - **CSI**: `local-path-provisioner` (Rancher) — a tiny dynamic provisioner that satisfies PVC requests by carving out subdirectories under `/opt/local-path-provisioner` on the node.

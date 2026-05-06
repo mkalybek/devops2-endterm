@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Live demo: bump fastapi image tag, watch RollingUpdate (maxUnavailable=0)
-# happen with ZERO 5xx in a parallel curl loop. Q8 on defense.
+# happen with ZERO 5xx in a parallel curl loop.
 #
 # Prereq: image business-fastapi:<NEW_TAG> already built on VM
 #         (run scripts/build-image.sh <NEW_TAG> first)

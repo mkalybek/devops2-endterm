@@ -1,4 +1,4 @@
-# Q4 — Business system architecture
+# Business system architecture
 
 ## What the cluster runs
 A simple but realistic service-with-database business app — **FastAPI + PostgreSQL** — that demonstrates the patterns a real microservice would need: persistence, configuration, secrets, ingress, observability, security.
@@ -36,8 +36,8 @@ HTTP via ingress  │ ingress-nginx    │
 ```
 
 ## Why FastAPI + Postgres
-- **FastAPI** is Python and async — small, easy to reason about in defense, demonstrates async DB I/O via `asyncpg` + SQLAlchemy 2.0 async.
-- **PostgreSQL StatefulSet** demonstrates **persistent storage** (Q7) with PVC, and **stable network identity** (`postgres-0`).
+- **FastAPI** is Python and async — small, easy to reason about, demonstrates async DB I/O via `asyncpg` + SQLAlchemy 2.0 async.
+- **PostgreSQL StatefulSet** demonstrates **persistent storage** with PVC, and **stable network identity** (`postgres-0`).
 - The two together exercise: ConfigMap, SealedSecret, Service-to-Service DNS, NetworkPolicy ingress/egress isolation, Ingress with hostname, ServiceMonitor scrape, RollingUpdate with readiness probe.
 
 ## API surface

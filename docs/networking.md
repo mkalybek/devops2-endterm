@@ -1,4 +1,4 @@
-# Q6 — Networking
+# Networking
 
 ## Stack
 | Layer | Component | Notes |
