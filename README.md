@@ -1,6 +1,6 @@
-# DevOps2 Endterm — Single-Node Kubernetes Platform
+# devops2-endterm
 
-Production-style single-node Kubernetes cluster on Ubuntu 25.10 (ARM64) with full GitOps, monitoring, and security best practices.
+Single-node Kubernetes cluster on Ubuntu 25.10 (ARM64). GitOps with ArgoCD, full Prometheus + Loki + Grafana stack, FastAPI + PostgreSQL business app, NetworkPolicies and sealed secrets. Bootstrapped with Ansible + kubespray.
 
 ## Stack
 
@@ -66,12 +66,11 @@ export KUBECONFIG=$(pwd)/kubeconfig
 # 4. Untaint single-node master so workloads schedule
 bash bootstrap/04-untaint-master.sh
 
-# 5. Bootstrap ArgoCD + sealed-secrets + apply root-app
+# 5. Install ArgoCD + apply root-app (everything else flows via GitOps)
 bash bootstrap/05-install-argocd.sh
-bash bootstrap/06-create-sealed-secrets.sh
 
-# 6. Apply root-app (ArgoCD manages everything from here)
-kubectl apply -f argocd/root-app.yaml
+# 6. Seal DB credentials (one-time, after sealed-secrets controller is up)
+bash bootstrap/06-create-sealed-secrets.sh
 ```
 
 ## Verify
@@ -82,6 +81,6 @@ bash scripts/demo-zero-downtime.sh  # rolling update with curl loop
 bash scripts/demo-netpol.sh      # prove NetworkPolicies work
 ```
 
-## Defense Q&A
+## Docs
 
-See `docs/01-topology.md` ... `docs/10-monitoring.md`.
+`docs/` covers each area of the system in detail — topology, deployment, access, architecture, security, networking, storage, rollout, extensions, monitoring.
