@@ -1,0 +1,175 @@
+---
+# Single-entrypoint orchestrator. Replaces bootstrap/02..06 shell scripts.
+#
+#   ansible-playbook -i inventory.ini site.yml
+#
+# Idempotent end-to-end:
+#   - prepare-vm     : OS pre-reqs (was bootstrap/01)
+#   - kubespray      : runs kubespray cluster.yml (was bootstrap/02)
+#   - fetch-kubeconf : pulls /etc/kubernetes/admin.conf to ./kubeconfig (was 03)
+#   - cluster-post   : untaint master + apply baseline PSA labels (was 04)
+#   - argocd-install : ArgoCD + root-app + cert-manager + kyverno hooks (was 05)
+#   - sealed-secrets : seal db creds once on first run (was 06)
+
+- import_playbook: prepare-vm.yml
+
+- name: Bootstrap Kubernetes via Kubespray
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    repo_root: "{{ playbook_dir }}/.."
+    kubespray_dir: "{{ playbook_dir }}/../kubespray"
+    kubespray_version: "release-2.26"
+  tasks:
+    - name: Ensure kubespray repository is present
+      ansible.builtin.git:
+        repo: https://github.com/kubernetes-sigs/kubespray.git
+        dest: "{{ kubespray_dir }}"
+        version: "{{ kubespray_version }}"
+        update: false
+
+    - name: Install kubespray python requirements
+      ansible.builtin.pip:
+        requirements: "{{ kubespray_dir }}/requirements.txt"
+        virtualenv: "{{ kubespray_dir }}/.venv"
+        virtualenv_command: python3 -m venv
+
+    - name: Stage kubespray inventory from our generated copy
+      ansible.builtin.copy:
+        src: "{{ repo_root }}/bootstrap/kubespray-inventory/"
+        dest: "{{ kubespray_dir }}/inventory/devops2/"
+        mode: preserve
+
+    - name: Run kubespray cluster.yml
+      ansible.builtin.command:
+        cmd: >-
+          {{ kubespray_dir }}/.venv/bin/ansible-playbook
+          -i {{ kubespray_dir }}/inventory/devops2/inventory.ini
+          --become --become-user=root
+          {{ kubespray_dir }}/cluster.yml
+      register: kubespray_run
+      changed_when: "'changed=' in kubespray_run.stdout"
+      tags: kubespray
+
+- name: Fetch kubeconfig
+  hosts: vm
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Pull admin.conf
+      ansible.builtin.fetch:
+        src: /etc/kubernetes/admin.conf
+        dest: "{{ playbook_dir }}/../kubeconfig"
+        flat: true
+        mode: "0600"
+
+    - name: Rewrite server address to VM IP
+      delegate_to: localhost
+      become: false
+      ansible.builtin.replace:
+        path: "{{ playbook_dir }}/../kubeconfig"
+        regexp: 'server:\s+https://127\.0\.0\.1:6443'
+        replace: "server: https://{{ ansible_host }}:6443"
+
+- name: Post-cluster cluster-level config
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  environment:
+    KUBECONFIG: "{{ playbook_dir }}/../kubeconfig"
+  tasks:
+    - name: Untaint single-node master so workloads schedule
+      ansible.builtin.command:
+        cmd: kubectl taint nodes --all node-role.kubernetes.io/control-plane- --overwrite
+      register: untaint
+      changed_when: "'untainted' in untaint.stdout"
+      failed_when: untaint.rc != 0 and 'not found' not in untaint.stderr
+
+    - name: Label namespaces for Pod Security Admission baseline
+      ansible.builtin.command:
+        cmd: >-
+          kubectl label --overwrite ns {{ item }}
+          pod-security.kubernetes.io/enforce=baseline
+          pod-security.kubernetes.io/audit=restricted
+          pod-security.kubernetes.io/warn=restricted
+      loop:
+        - default
+        - ingress-nginx
+        - monitoring
+        - logging
+      register: psa_label
+      changed_when: "'labeled' in psa_label.stdout"
+      failed_when: psa_label.rc != 0 and 'not found' not in psa_label.stderr
+
+- name: Install ArgoCD + apply root-app
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  environment:
+    KUBECONFIG: "{{ playbook_dir }}/../kubeconfig"
+  vars:
+    argocd_version: v3.0.0
+    repo_root: "{{ playbook_dir }}/.."
+  tasks:
+    - name: Create argocd namespace
+      kubernetes.core.k8s:
+        api_version: v1
+        kind: Namespace
+        name: argocd
+        state: present
+
+    - name: Install ArgoCD manifests
+      kubernetes.core.k8s:
+        state: present
+        namespace: argocd
+        src: "https://raw.githubusercontent.com/argoproj/argo-cd/{{ argocd_version }}/manifests/install.yaml"
+
+    - name: Wait for argocd-server
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        namespace: argocd
+        name: argocd-server
+        wait: true
+        wait_condition:
+          type: Available
+          status: "True"
+        wait_timeout: 300
+
+    - name: Apply root-app (app-of-apps)
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ repo_root }}/argocd/root-app.yaml"
+
+- name: Seal DB credentials (one-time)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  environment:
+    KUBECONFIG: "{{ playbook_dir }}/../kubeconfig"
+  vars:
+    repo_root: "{{ playbook_dir }}/.."
+    sealed_secret_path: "{{ repo_root }}/charts/business/templates/sealedsecret.yaml"
+  tasks:
+    - name: Check whether a sealed secret already exists in git
+      ansible.builtin.stat:
+        path: "{{ sealed_secret_path }}"
+      register: sealed_stat
+
+    - name: Wait for sealed-secrets controller
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        namespace: kube-system
+        name: sealed-secrets
+        wait: true
+        wait_condition:
+          type: Available
+          status: "True"
+        wait_timeout: 300
+      when: not sealed_stat.stat.exists
+
+    - name: Run seal script (writes charts/business/templates/sealedsecret.yaml)
+      ansible.builtin.command:
+        cmd: bash "{{ repo_root }}/bootstrap/06-create-sealed-secrets.sh"
+      when: not sealed_stat.stat.exists
+      changed_when: true

@@ -26,7 +26,7 @@ if [ "$OLD_IP" = "$VM_HOST_NEW" ]; then
   exit 0
 fi
 
-echo "==> [2/5] Patch all kubeconfigs and apiserver manifest on VM (-> 127.0.0.1 for cluster-internal)"
+echo "==> [2/5] Patch all kubeconfigs, apiserver manifest, AND etcd env on VM (-> 127.0.0.1 for cluster-internal)"
 ssh "${VM_USER}@${VM_HOST_NEW}" "
   set -e
   sed -i \"s|--advertise-address=${OLD_IP}|--advertise-address=${VM_HOST_NEW}|; s|advertise-address.endpoint: ${OLD_IP}:6443|advertise-address.endpoint: ${VM_HOST_NEW}:6443|; s|https://${OLD_IP}:6443|https://127.0.0.1:6443|g\" /etc/kubernetes/manifests/kube-apiserver.yaml
@@ -34,10 +34,24 @@ ssh "${VM_USER}@${VM_HOST_NEW}" "
     [ -f \"\$f\" ] && sed -i \"s|https://${OLD_IP}:6443|https://127.0.0.1:6443|g\" \"\$f\" 2>/dev/null || true
   done
   sed -i \"s|--node-ip=${OLD_IP}|--node-ip=${VM_HOST_NEW}|\" /etc/kubernetes/kubelet.env
+
+  # etcd binds its listeners on the host IP. After an IP change /etc/etcd.env
+  # still points at the old IP and 'bind: cannot assign requested address'
+  # crashes the daemon — which then crash-loops kube-apiserver. Pin etcd to
+  # 127.0.0.1 (the member cert already has 127.0.0.1 in its SAN list), so
+  # future IP changes do not break the control plane.
+  if [ -f /etc/etcd.env ]; then
+    cp /etc/etcd.env /etc/etcd.env.bak.\$(date +%s)
+    sed -i \"
+      s|https://${OLD_IP}:2379|https://127.0.0.1:2379|g
+      s|https://${OLD_IP}:2380|https://127.0.0.1:2380|g
+    \" /etc/etcd.env
+  fi
 "
 
-echo "==> [3/5] Restart kubelet and control-plane static pods"
+echo "==> [3/5] Restart etcd FIRST, then kubelet + control-plane static pods"
 ssh "${VM_USER}@${VM_HOST_NEW}" "
+  systemctl is-enabled etcd >/dev/null 2>&1 && systemctl restart etcd && sleep 4 || true
   systemctl restart kubelet
   sleep 5
   for c in kube-apiserver kube-controller-manager kube-scheduler; do

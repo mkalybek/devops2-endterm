@@ -50,11 +50,28 @@ alertmanager:
               storage: 1Gi
 
 grafana:
-  adminPassword: admin
+  # adminPassword is intentionally absent — it is supplied via the
+  # SealedSecret `grafana-admin` (charts/business/templates/... — N/A for
+  # monitoring ns; sealed at bootstrap into `monitoring/grafana-admin`).
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
   persistence:
     enabled: true
     storageClassName: local-path
     size: 2Gi
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts: [grafana.local]
+    path: /
+    annotations:
+      cert-manager.io/cluster-issuer: cluster-ca-issuer
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    tls:
+      - hosts: [grafana.local]
+        secretName: grafana-tls
   resources:
     requests:
       cpu: 100m

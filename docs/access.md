@@ -24,10 +24,59 @@ wave 10 → business chart (depends on storage + sealed-secrets)
 - Plaintext secrets never enter git. We use **Bitnami sealed-secrets**: the controller's public key encrypts a `Secret` into a `SealedSecret` (which IS safe to commit).
 - The controller running in `kube-system` is the only thing that can decrypt — even an attacker reading the entire repo learns nothing.
 
+## Per-user kubeconfig via CSR
+
+For any human other than the cluster admin, mint a per-user cert signed by the
+cluster CA and bind it to the `dev-readonly` Group (provisioned by the business
+chart's `Role`/`RoleBinding`). No shared passwords, no shared admin.conf.
+
+```bash
+USER=alice
+# 1. Generate key + CSR on the user's laptop
+openssl genrsa -out ${USER}.key 2048
+openssl req -new -key ${USER}.key -out ${USER}.csr \
+  -subj "/CN=${USER}/O=dev-readonly"
+
+# 2. Submit CSR to the cluster (admin runs this)
+cat <<EOF | kubectl apply -f -
+apiVersion: certificates.k8s.io/v1
+kind: CertificateSigningRequest
+metadata:
+  name: ${USER}
+spec:
+  request: $(cat ${USER}.csr | base64 | tr -d '\n')
+  signerName: kubernetes.io/kube-apiserver-client
+  expirationSeconds: 2592000   # 30 days, force rotation
+  usages: [client auth]
+EOF
+kubectl certificate approve ${USER}
+kubectl get csr ${USER} -o jsonpath='{.status.certificate}' | base64 -d > ${USER}.crt
+
+# 3. Build the user's kubeconfig (read-only on business ns only)
+kubectl --kubeconfig=${USER}.kubeconfig config set-cluster devops2 \
+  --server=https://172.20.10.4:6443 --insecure-skip-tls-verify=true
+kubectl --kubeconfig=${USER}.kubeconfig config set-credentials ${USER} \
+  --client-certificate=${USER}.crt --client-key=${USER}.key --embed-certs=true
+kubectl --kubeconfig=${USER}.kubeconfig config set-context default \
+  --cluster=devops2 --user=${USER} --namespace=business
+kubectl --kubeconfig=${USER}.kubeconfig config use-context default
+```
+
+The `Role`/`RoleBinding` in `charts/business/templates/rbac.yaml` grant only
+`get/list/watch` on pods, deployments, ingresses, networkpolicies and PDBs.
+Any `kubectl edit` or `delete` will be denied — verified by:
+
+```bash
+kubectl --kubeconfig=${USER}.kubeconfig -n business auth can-i delete pods
+# → no
+```
+
 ## Live verification
 ```bash
 kubectl -n argocd get app -o wide              # all Synced/Healthy
 kubectl -n kube-system get deploy sealed-secrets
 ls -la kubeconfig                              # should be 0600
 git log --oneline | head                       # one commit per intentional change
+kubectl get role,rolebinding -n business       # dev-readonly present
+kubectl get csr                                # pending/approved per-user requests
 ```

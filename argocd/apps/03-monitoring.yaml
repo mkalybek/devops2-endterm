@@ -67,7 +67,12 @@ spec:
                       storage: 1Gi
 
         grafana:
-          adminPassword: admin
+          # adminPassword sourced from SealedSecret `grafana-admin` (see
+          # argocd/apps/00b-admin-secrets.yaml). Never inline cleartext.
+          admin:
+            existingSecret: grafana-admin
+            userKey: admin-user
+            passwordKey: admin-password
           persistence:
             enabled: true
             storageClassName: local-path
@@ -77,6 +82,12 @@ spec:
             ingressClassName: nginx
             hosts: [grafana.local]
             path: /
+            annotations:
+              cert-manager.io/cluster-issuer: cluster-ca-issuer
+              nginx.ingress.kubernetes.io/ssl-redirect: "true"
+            tls:
+              - hosts: [grafana.local]
+                secretName: grafana-tls
           resources:
             requests:
               cpu: 100m

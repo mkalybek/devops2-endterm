@@ -46,6 +46,8 @@ spec:
         runAsNonRoot: true
         runAsUser: 1000
         fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: fastapi
           image: "{{ .Values.fastapi.image.repository }}:{{ .Values.fastapi.image.tag }}"

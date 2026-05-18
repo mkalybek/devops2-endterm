@@ -1,5 +1,6 @@
-# Patch argocd-server to serve plain HTTP (so a regular Ingress can front it
-# without needing TLS passthrough), then expose via Ingress at argocd.local.
+# ArgoCD ingress — TLS-terminated by ingress-nginx, cert minted by cert-manager
+# via the in-cluster CA issuer. argocd-server runs in --insecure mode so it
+# accepts plain HTTP from the controller; the only public hop is HTTPS.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -17,9 +18,15 @@ metadata:
   name: argocd-server
   namespace: argocd
   annotations:
+    cert-manager.io/cluster-issuer: cluster-ca-issuer
     nginx.ingress.kubernetes.io/backend-protocol: HTTP
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - argocd.local
+      secretName: argocd-tls
   rules:
     - host: argocd.local
       http:

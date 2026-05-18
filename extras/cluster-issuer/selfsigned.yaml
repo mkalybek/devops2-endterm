@@ -1,0 +1,37 @@
+# Bootstrap self-signed issuer — used to mint the cluster-local root CA.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-bootstrap
+spec:
+  selfSigned: {}
+---
+# Cluster-local root CA. Public cert is mounted into ingress-nginx via the
+# cluster-ca Secret below; clients can `curl --cacert` against it for trust.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: cluster-ca
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: devops2-endterm-ca
+  secretName: cluster-ca-key-pair
+  duration: 87600h     # 10y, single-node lab cert
+  renewBefore: 720h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: selfsigned-bootstrap
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+# Production issuer used by all Ingress resources in-cluster.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: cluster-ca-issuer
+spec:
+  ca:
+    secretName: cluster-ca-key-pair

@@ -6,8 +6,19 @@ metadata:
   namespace: {{ .Values.namespace }}
   labels:
     {{- include "business.labels" . | nindent 4 }}
+  annotations:
+    {{- if .Values.fastapi.ingress.tls.enabled }}
+    cert-manager.io/cluster-issuer: {{ .Values.fastapi.ingress.tls.clusterIssuer | quote }}
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    {{- end }}
 spec:
   ingressClassName: {{ .Values.fastapi.ingress.className }}
+  {{- if .Values.fastapi.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.fastapi.ingress.host }}
+      secretName: fastapi-tls
+  {{- end }}
   rules:
     - host: {{ .Values.fastapi.ingress.host }}
       http:

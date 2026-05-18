@@ -1,0 +1,4 @@
+vm_ip         = "172.20.10.4"
+vm_hostname   = "node1"
+ssh_user      = "root"
+run_bootstrap = false

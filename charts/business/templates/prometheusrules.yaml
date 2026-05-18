@@ -1,0 +1,83 @@
+{{- if .Values.fastapi.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: business-rules
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "business.labels" . | nindent 4 }}
+    release: monitoring   # picked up by kube-prometheus-stack
+spec:
+  groups:
+    - name: business.reliability
+      interval: 30s
+      rules:
+        - alert: FastAPIPodCrashLooping
+          expr: |
+            increase(kube_pod_container_status_restarts_total{namespace="{{ .Values.namespace }}", pod=~"fastapi-.*"}[10m]) > 3
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "FastAPI pod {{`{{ $labels.pod }}`}} is crash-looping"
+            description: "More than 3 restarts in the last 10 minutes."
+
+        - alert: FastAPIPodOOMKilled
+          expr: |
+            kube_pod_container_status_last_terminated_reason{namespace="{{ .Values.namespace }}", reason="OOMKilled"} == 1
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod {{`{{ $labels.pod }}`}} was OOMKilled"
+
+        - alert: PostgresDown
+          expr: |
+            kube_statefulset_status_replicas_ready{namespace="{{ .Values.namespace }}", statefulset="postgres"} < 1
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Postgres is not ready in {{ .Values.namespace }}"
+
+        - alert: FastAPIBelowMinReplicas
+          expr: |
+            kube_deployment_status_replicas_available{namespace="{{ .Values.namespace }}", deployment="fastapi"}
+            < kube_deployment_spec_replicas{namespace="{{ .Values.namespace }}", deployment="fastapi"}
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "FastAPI has fewer available replicas than desired"
+
+    - name: business.security
+      interval: 1m
+      rules:
+        - alert: PostgresBackupMissing
+          expr: |
+            time() - kube_job_status_succeeded{namespace="{{ .Values.namespace }}", job_name=~"postgres-backup-.*"} > 36 * 3600
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "No successful Postgres backup in the last 36h"
+
+        - alert: KyvernoPolicyViolation
+          expr: |
+            increase(kyverno_policy_results_total{policy_validation_mode="enforce", policy_result="fail"}[15m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Kyverno enforce policy denied a resource"
+            description: "Policy {{`{{ $labels.policy_name }}`}} denied an admission request."
+
+        - alert: SealedSecretControllerDown
+          expr: |
+            kube_deployment_status_replicas_available{namespace="kube-system", deployment="sealed-secrets"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "sealed-secrets controller has no Ready replicas"
+{{- end }}

@@ -1,0 +1,72 @@
+{{- if .Values.rbac.enabled }}
+# Least-privilege read-only role for developers / on-call engineers who need
+# to debug the business app but must NOT be able to mutate state. Binds to a
+# `dev-readonly` Group, which an admin provisions per-user via a CSR
+# (see docs/access.md → "Per-user kubeconfig via CSR").
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: dev-readonly
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "business.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: [pods, pods/log, pods/status, services, endpoints, configmaps]
+    verbs: [get, list, watch]
+  - apiGroups: [apps]
+    resources: [deployments, replicasets, statefulsets]
+    verbs: [get, list, watch]
+  - apiGroups: [networking.k8s.io]
+    resources: [ingresses, networkpolicies]
+    verbs: [get, list, watch]
+  - apiGroups: [policy]
+    resources: [poddisruptionbudgets]
+    verbs: [get, list, watch]
+  - apiGroups: [metrics.k8s.io]
+    resources: [pods, nodes]
+    verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dev-readonly
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "business.labels" . | nindent 4 }}
+subjects:
+  - kind: Group
+    name: dev-readonly
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: dev-readonly
+  apiGroup: rbac.authorization.k8s.io
+---
+# Service account used by the ServiceMonitor + any in-cluster automation that
+# needs to introspect the business namespace. NOT a substitute for the
+# RoleBinding above — bound separately so we can audit each principal.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: business-ops
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "business.labels" . | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: business-ops-readonly
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "business.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: business-ops
+    namespace: {{ .Values.namespace }}
+roleRef:
+  kind: Role
+  name: dev-readonly
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

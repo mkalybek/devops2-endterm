@@ -32,6 +32,9 @@ fastapi:
     enabled: true
     className: nginx
     host: business.local
+    tls:
+      enabled: true
+      clusterIssuer: cluster-ca-issuer
 
 postgres:
   image:
@@ -73,3 +76,21 @@ limitRange:
 
 networkPolicies:
   enabled: true
+
+rbac:
+  # Provisions Role + RoleBinding for `dev-readonly` group and `business-ops` SA.
+  # See docs/access.md for the per-user CSR flow that issues a kubeconfig
+  # bound to the dev-readonly group.
+  enabled: true
+
+backup:
+  enabled: true
+  # Daily Postgres logical backup. Retains last 7 dumps on the same PVC.
+  schedule: "0 3 * * *"
+  retention: 7
+  image:
+    repository: postgres
+    tag: "16-alpine"
+  storage:
+    storageClassName: local-path
+    size: 2Gi

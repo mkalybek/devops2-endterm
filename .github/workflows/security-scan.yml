@@ -1,0 +1,99 @@
+name: security-scan
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "charts/**"
+      - "extras/kyverno-policies/**"
+      - ".github/workflows/security-scan.yml"
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  trivy-image:
+    name: Trivy — FastAPI image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./app
+          load: true
+          tags: business-fastapi:ci
+
+      - name: Trivy image scan (fail on HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: business-fastapi:ci
+          format: sarif
+          output: trivy-image.sarif
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Upload SARIF to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image.sarif
+          category: trivy-image
+
+  trivy-config:
+    name: Trivy — IaC + manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy config scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: .
+          format: sarif
+          output: trivy-config.sarif
+          severity: HIGH,CRITICAL
+          exit-code: "0"   # don't fail PRs on existing tech debt, just surface
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-config.sarif
+          category: trivy-config
+
+  kyverno-test:
+    name: Kyverno — policies validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install kyverno CLI
+        run: |
+          curl -sLO https://github.com/kyverno/kyverno/releases/download/v1.13.1/kyverno-cli_v1.13.1_linux_x86_64.tar.gz
+          tar -xzf kyverno-cli_v1.13.1_linux_x86_64.tar.gz
+          sudo mv kyverno /usr/local/bin/
+      - name: Validate cluster policies
+        run: kyverno validate extras/kyverno-policies/
+
+  helm-lint:
+    name: Helm — chart lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.2
+      - run: helm lint charts/business
+      - run: helm template business charts/business | kubectl --dry-run=client apply -f - || true
+        env:
+          KUBECONFIG: /dev/null

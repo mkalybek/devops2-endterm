@@ -13,13 +13,14 @@
 
 ## NetworkPolicy posture (default-deny + explicit allow)
 
-`charts/business/templates/networkpolicies.yaml` ships **6 NetworkPolicies** for the `business` namespace:
+`charts/business/templates/networkpolicies.yaml` ships **7 NetworkPolicies** for the `business` namespace:
 
 | # | Name | Type | Effect |
 |---|---|---|---|
 | 1 | `default-deny-all` | both | denies ALL ingress + egress in the ns |
 | 2 | `allow-fastapi-from-ingress` | ingress | only `ns=ingress-nginx` may reach `fastapi:8000` |
-| 3 | `allow-postgres-from-fastapi` | ingress | only pods with `app=fastapi` may reach `postgres:5432` |
+| 3 | `allow-postgres-from-fastapi` | ingress | only pods with `app=fastapi` OR `app=postgres-backup` may reach `postgres:5432` |
+| 3b | `allow-backup-egress` | egress | backup pod may talk to DNS + postgres only |
 | 4 | `allow-fastapi-egress` | egress | fastapi may talk to kube-system (DNS) and postgres only |
 | 5 | `allow-postgres-egress` | egress | postgres may talk to kube-system (DNS) only |
 | 6 | `allow-fastapi-from-monitoring` | ingress | Prometheus may scrape `/metrics` on fastapi |

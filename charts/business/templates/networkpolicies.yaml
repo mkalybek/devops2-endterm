@@ -33,7 +33,7 @@ spec:
         - protocol: TCP
           port: {{ .Values.fastapi.port }}
 ---
-# 3) allow fastapi → postgres:5432
+# 3) allow fastapi + postgres-backup CronJob → postgres:5432
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -51,6 +51,42 @@ spec:
         - podSelector:
             matchLabels:
               app: fastapi
+        - podSelector:
+            matchLabels:
+              app: postgres-backup
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+# 3b) backup CronJob egress: DNS + postgres only
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backup-egress
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "business.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres-backup
+  policyTypes: [Egress]
+  egress:
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+        - ipBlock:
+            cidr: 169.254.0.0/16
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgres
       ports:
         - protocol: TCP
           port: 5432
