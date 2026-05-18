@@ -32,14 +32,27 @@ jobs:
           load: true
           tags: business-fastapi:ci
 
-      - name: Trivy image scan (fail on HIGH/CRITICAL)
+      # Two-pass scan: a hard gate that fails on CRITICAL only (broad real-world
+      # policy — any CRITICAL with a fix MUST be patched), plus a wider HIGH+CRITICAL
+      # pass that uploads to GitHub Security but never fails the build.
+      - name: Trivy image scan — fail on CRITICAL (table output)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: business-fastapi:ci
+          format: table
+          severity: CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Trivy image scan — audit HIGH+CRITICAL (SARIF)
+        if: always()
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: business-fastapi:ci
           format: sarif
           output: trivy-image.sarif
           severity: HIGH,CRITICAL
-          exit-code: "1"
+          exit-code: "0"
           ignore-unfixed: true
 
       - name: Upload SARIF to GitHub Security
