@@ -68,7 +68,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Business API", version=APP_VERSION, lifespan=lifespan)
-
+print("test")
 # Prometheus metrics on /metrics — picked up by ServiceMonitor
 Instrumentator(
     excluded_handlers=["/metrics", "/health", "/ready"],
