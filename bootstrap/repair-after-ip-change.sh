@@ -29,7 +29,17 @@ fi
 echo "==> [2/5] Patch all kubeconfigs, apiserver manifest, AND etcd env on VM (-> 127.0.0.1 for cluster-internal)"
 ssh "${VM_USER}@${VM_HOST_NEW}" "
   set -e
-  sed -i \"s|--advertise-address=${OLD_IP}|--advertise-address=${VM_HOST_NEW}|; s|advertise-address.endpoint: ${OLD_IP}:6443|advertise-address.endpoint: ${VM_HOST_NEW}:6443|; s|https://${OLD_IP}:6443|https://127.0.0.1:6443|g\" /etc/kubernetes/manifests/kube-apiserver.yaml
+  # Remove any stray .bak manifests in /etc/kubernetes/manifests/. kubelet treats
+  # *.yaml AND *.yaml.bak as static-pod manifests, so a leftover .bak with an old
+  # apiserver flag silently starts a second apiserver that owns the kubernetes
+  # Service endpoint reconciliation — iptables/EndpointSlice then keep pointing
+  # at the old IP no matter how many times you patch the live manifest.
+  find /etc/kubernetes/manifests -maxdepth 1 -name '*.bak' -exec mv {} /root/ \\;
+
+  # Always overwrite the advertise flags rather than relying on OLD_IP detection
+  # (admin.conf often drifts to 127.0.0.1 from a previous repair, while the
+  # manifest still carries the cluster IP — sed against OLD_IP misses).
+  sed -i -E \"s|--advertise-address=[0-9.]+|--advertise-address=${VM_HOST_NEW}|; s|advertise-address.endpoint: [0-9.]+:6443|advertise-address.endpoint: ${VM_HOST_NEW}:6443|; s|https://${OLD_IP}:6443|https://127.0.0.1:6443|g\" /etc/kubernetes/manifests/kube-apiserver.yaml
   for f in /etc/kubernetes/*.conf /etc/kubernetes/*.yaml; do
     [ -f \"\$f\" ] && sed -i \"s|https://${OLD_IP}:6443|https://127.0.0.1:6443|g\" \"\$f\" 2>/dev/null || true
   done
