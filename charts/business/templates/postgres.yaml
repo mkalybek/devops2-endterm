@@ -26,6 +26,11 @@ metadata:
 spec:
   serviceName: postgres
   replicas: 1
+  # Explicit defaults — without these k8s 1.27+ injects them at admission
+  # and ArgoCD reports OutOfSync forever.
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
   selector:
     matchLabels:
       app: postgres
