@@ -8,9 +8,9 @@ namespace: business
 fastapi:
   image:
     repository: business-fastapi
-    tag: "2.0.1"
+    tag: "2.0.2"
     pullPolicy: Never  # built directly into containerd via nerdctl on the VM
-  replicas: 3
+  replicas: 5
   port: 8000
 
   resources:
