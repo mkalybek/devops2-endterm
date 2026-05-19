@@ -35,19 +35,35 @@
         virtualenv: "{{ kubespray_dir }}/.venv"
         virtualenv_command: python3 -m venv
 
-    - name: Stage kubespray inventory from our generated copy
+    - name: Seed kubespray inventory dir from upstream sample (provides default group_vars)
       ansible.builtin.copy:
-        src: "{{ repo_root }}/bootstrap/kubespray-inventory/"
+        src: "{{ kubespray_dir }}/inventory/sample/"
         dest: "{{ kubespray_dir }}/inventory/devops2/"
         mode: preserve
+        force: false
+
+    - name: Overlay our generated inventory.ini (Terraform-managed VM IP)
+      ansible.builtin.copy:
+        src: "{{ repo_root }}/bootstrap/kubespray-inventory/inventory.ini"
+        dest: "{{ kubespray_dir }}/inventory/devops2/inventory.ini"
+        mode: "0644"
+
+    - name: Overlay our k8s_cluster overrides (single-node tweaks + SAN list)
+      ansible.builtin.copy:
+        src: "{{ repo_root }}/bootstrap/kubespray-inventory/k8s-cluster-overrides.yml"
+        dest: "{{ kubespray_dir }}/inventory/devops2/group_vars/k8s_cluster/k8s-cluster.yml"
+        mode: "0644"
 
     - name: Run kubespray cluster.yml
+      # chdir so kubespray's own ansible.cfg (with its roles_path) is picked
+      # up — otherwise ansible can't find roles like `kubespray-defaults`.
       ansible.builtin.command:
+        chdir: "{{ kubespray_dir }}"
         cmd: >-
-          {{ kubespray_dir }}/.venv/bin/ansible-playbook
-          -i {{ kubespray_dir }}/inventory/devops2/inventory.ini
+          .venv/bin/ansible-playbook
+          -i inventory/devops2/inventory.ini
           --become --become-user=root
-          {{ kubespray_dir }}/cluster.yml
+          cluster.yml
       register: kubespray_run
       changed_when: "'changed=' in kubespray_run.stdout"
       tags: kubespray
@@ -64,13 +80,16 @@
         flat: true
         mode: "0600"
 
-    - name: Rewrite server address to VM IP
+    - name: Rewrite server address to VM IP + skip TLS verify (IP-change resilient)
       delegate_to: localhost
       become: false
       ansible.builtin.replace:
         path: "{{ playbook_dir }}/../kubeconfig"
-        regexp: 'server:\s+https://127\.0\.0\.1:6443'
-        replace: "server: https://{{ ansible_host }}:6443"
+        regexp: "{{ item.regexp }}"
+        replace: "{{ item.replace }}"
+      loop:
+        - { regexp: 'server:\s+https://127\.0\.0\.1:6443', replace: "server: https://{{ ansible_host }}:6443" }
+        - { regexp: 'certificate-authority-data:.*',       replace: 'insecure-skip-tls-verify: true' }
 
 - name: Post-cluster cluster-level config
   hosts: localhost

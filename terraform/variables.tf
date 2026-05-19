@@ -1,13 +1,19 @@
 variable "vm_ip" {
   type        = string
-  description = "Reachable IPv4 of the Ubuntu VM hosting the single-node cluster."
-  default     = "172.20.10.4"
+  description = "Optional override for the VM's IPv4. Leave empty to auto-discover from Multipass via scripts/multipass-ip.sh."
+  default     = ""
+}
+
+variable "vm_name" {
+  type        = string
+  description = "Multipass instance name AND logical hostname used in inventories. Discovery feeds this to `multipass info`."
+  default     = "node1"
 }
 
 variable "vm_hostname" {
   type        = string
-  description = "Logical hostname used in inventories."
-  default     = "node1"
+  description = "Hostname recorded in inventories. Defaults to vm_name."
+  default     = ""
 }
 
 variable "ssh_user" {

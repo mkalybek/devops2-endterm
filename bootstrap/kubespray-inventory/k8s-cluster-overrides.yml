@@ -24,6 +24,20 @@ etcd_deployment_type: host
 loadbalancer_apiserver_localhost: true
 kube_apiserver_global_oidc_issuer_url: ""
 
+# Resilience to VM IP changes:
+#   1. loadbalancer_apiserver_localhost (above) makes every in-cluster client
+#      (kubelet, kube-proxy, controller-manager, scheduler, pods using
+#      kubernetes.default) talk to the apiserver via 127.0.0.1 — so they
+#      never embed the host IP and survive any IP swap untouched.
+#   2. 127.0.0.1 in the apiserver cert SAN list lets cluster-internal
+#      components verify TLS without needing the host IP.
+#   3. The Mac-side kubeconfig is written with `insecure-skip-tls-verify`
+#      by ansible/site.yml so it survives IP changes regardless of cert SAN.
+#      This is a dev cluster — for prod you'd add the real LAN IPs here
+#      and rotate certs on IP change instead.
+supplementary_addresses_in_ssl_keys:
+  - 127.0.0.1
+
 # Required for NetworkPolicy
 kube_network_node_prefix: 24
 

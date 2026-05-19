@@ -89,10 +89,26 @@
             remote_src: true
           when: nerdctl_check.rc != 0
 
-        - name: Install buildkit (required for nerdctl build)
-          ansible.builtin.apt:
-            name: buildkit
-            state: present
+        - name: Detect buildkitd
+          ansible.builtin.command: which buildkitd
+          register: buildkit_check
+          changed_when: false
+          failed_when: false
+
+        - name: Install buildkit from upstream release (apt package gone in Ubuntu 24.04)
+          when: buildkit_check.rc != 0
+          block:
+            - name: Download buildkit tarball
+              ansible.builtin.get_url:
+                url: "https://github.com/moby/buildkit/releases/download/v0.16.0/buildkit-v0.16.0.linux-{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}.tar.gz"
+                dest: /tmp/buildkit.tar.gz
+                mode: "0644"
+
+            - name: Extract buildkit to /usr/local
+              ansible.builtin.unarchive:
+                src: /tmp/buildkit.tar.gz
+                dest: /usr/local
+                remote_src: true
 
   handlers:
     - name: restart sshd

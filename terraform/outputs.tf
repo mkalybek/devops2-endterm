@@ -1,6 +1,11 @@
 output "vm_ip" {
-  value       = var.vm_ip
-  description = "IPv4 of the VM (single source of truth, consumed by Ansible inventories)."
+  value       = local.resolved_ip
+  description = "IPv4 of the VM (auto-discovered from Multipass unless var.vm_ip overrides)."
+}
+
+output "vm_name" {
+  value       = var.vm_name
+  description = "Multipass instance name (also used as ansible hostname)."
 }
 
 output "ansible_inventory_path" {
@@ -9,5 +14,5 @@ output "ansible_inventory_path" {
 }
 
 output "next_step" {
-  value = var.run_bootstrap ? "Bootstrap triggered. Watch ansible output above." : "Inventory generated. Run: terraform apply -var=run_bootstrap=true"
+  value = var.run_bootstrap ? "Bootstrap triggered — watch ansible output above." : "Inventory generated at IP ${local.resolved_ip}. Run: terraform apply -var=run_bootstrap=true"
 }

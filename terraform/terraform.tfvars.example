@@ -1,4 +1,7 @@
-vm_ip         = "172.20.10.4"
-vm_hostname   = "node1"
+// Defaults work out of the box for Multipass — IP is auto-discovered.
+// Uncomment vm_ip ONLY to point at a non-Multipass VM.
+//
+// vm_ip         = "192.168.10.68"
+vm_name       = "node1"
 ssh_user      = "root"
 run_bootstrap = false

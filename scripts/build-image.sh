@@ -9,8 +9,14 @@ set -euo pipefail
 
 TAG="${1:?usage: $0 <tag>   e.g. 1.0.0}"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VM_HOST="${VM_HOST:-172.20.10.4}"
 VM_USER="${VM_USER:-root}"
+
+# Auto-discover VM IP from Terraform output (which auto-discovers from Multipass).
+# Honors VM_HOST env override.
+if [ -z "${VM_HOST:-}" ]; then
+  VM_HOST="$(cd "${REPO_ROOT}/terraform" && terraform output -raw vm_ip 2>/dev/null || true)"
+fi
+[ -n "${VM_HOST}" ] || { echo "VM_HOST empty — set VM_HOST=<ip> or run terraform apply" >&2; exit 2; }
 
 IMAGE="business-fastapi:${TAG}"
 REMOTE_DIR="/root/build-business-fastapi"
@@ -23,10 +29,11 @@ rsync -a --delete \
   "${VM_USER}@${VM_HOST}:${REMOTE_DIR}/"
 
 echo "==> [2/4] Ensure buildkitd is running on VM"
+# Ubuntu 24.04 has no apt buildkit package — buildkitd is installed from the
+# upstream tarball by ansible/prepare-vm.yml. Just start it directly if not up.
 ssh "${VM_USER}@${VM_HOST}" '
-  if ! systemctl is-active --quiet buildkit; then
-    systemctl enable --now buildkit 2>/dev/null || \
-      nohup buildkitd >/var/log/buildkitd.log 2>&1 &
+  if ! pgrep -x buildkitd >/dev/null; then
+    nohup buildkitd >/var/log/buildkitd.log 2>&1 &
     sleep 2
   fi
 '
