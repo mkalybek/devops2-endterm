@@ -36,3 +36,10 @@ Thumbs.db
 
 # agent harness
 .claude/
+
+# terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.*
+terraform/terraform.tfvars
